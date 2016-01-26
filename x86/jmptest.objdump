@@ -1,0 +1,71 @@
+
+jmptest:     file format elf32-i386
+
+
+Disassembly of section .text:
+
+08048054 <_start>:
+ 8048054:	b8 01 00 00 00       	mov    $0x1,%eax
+ 8048059:	eb 07                	jmp    8048062 <overhere>
+ 804805b:	bb 0a 00 00 00       	mov    $0xa,%ebx
+ 8048060:	cd 80                	int    $0x80
+
+08048062 <overhere>:
+ 8048062:	bb 14 00 00 00       	mov    $0x14,%ebx
+ 8048067:	cd 80                	int    $0x80
+
+Disassembly of section .stab:
+
+00000000 <.stab>:
+   0:	01 00                	add    %eax,(%eax)
+   2:	00 00                	add    %al,(%eax)
+   4:	00 00                	add    %al,(%eax)
+   6:	07                   	pop    %es
+   7:	00 0b                	add    %cl,(%ebx)
+   9:	00 00                	add    %al,(%eax)
+   b:	00 01                	add    %al,(%ecx)
+   d:	00 00                	add    %al,(%eax)
+   f:	00 64 00 00          	add    %ah,0x0(%eax,%eax,1)
+  13:	00 54 80 04          	add    %dl,0x4(%eax,%eax,4)
+  17:	08 00                	or     %al,(%eax)
+  19:	00 00                	add    %al,(%eax)
+  1b:	00 44 00 05          	add    %al,0x5(%eax,%eax,1)
+  1f:	00 54 80 04          	add    %dl,0x4(%eax,%eax,4)
+  23:	08 00                	or     %al,(%eax)
+  25:	00 00                	add    %al,(%eax)
+  27:	00 44 00 06          	add    %al,0x6(%eax,%eax,1)
+  2b:	00 59 80             	add    %bl,-0x80(%ecx)
+  2e:	04 08                	add    $0x8,%al
+  30:	00 00                	add    %al,(%eax)
+  32:	00 00                	add    %al,(%eax)
+  34:	44                   	inc    %esp
+  35:	00 07                	add    %al,(%edi)
+  37:	00 5b 80             	add    %bl,-0x80(%ebx)
+  3a:	04 08                	add    $0x8,%al
+  3c:	00 00                	add    %al,(%eax)
+  3e:	00 00                	add    %al,(%eax)
+  40:	44                   	inc    %esp
+  41:	00 08                	add    %cl,(%eax)
+  43:	00 60 80             	add    %ah,-0x80(%eax)
+  46:	04 08                	add    $0x8,%al
+  48:	00 00                	add    %al,(%eax)
+  4a:	00 00                	add    %al,(%eax)
+  4c:	44                   	inc    %esp
+  4d:	00 0a                	add    %cl,(%edx)
+  4f:	00 62 80             	add    %ah,-0x80(%edx)
+  52:	04 08                	add    $0x8,%al
+  54:	00 00                	add    %al,(%eax)
+  56:	00 00                	add    %al,(%eax)
+  58:	44                   	inc    %esp
+  59:	00 0b                	add    %cl,(%ebx)
+  5b:	00 67 80             	add    %ah,-0x80(%edi)
+  5e:	04 08                	add    $0x8,%al
+
+Disassembly of section .stabstr:
+
+00000000 <.stabstr>:
+   0:	00 6a 6d             	add    %ch,0x6d(%edx)
+   3:	70 74                	jo     79 <_start-0x8047fdb>
+   5:	65                   	gs
+   6:	73 74                	jae    7c <_start-0x8047fd8>
+   8:	2e 73 00             	jae,pn b <_start-0x8048049>

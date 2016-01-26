@@ -1,0 +1,96 @@
+#!/usr/bin/bash
+
+# A build script for x86 32-bit assembly
+# with support for debug and libc
+# Jan 9, 2016
+# root@davejingtian.org
+# http://davejingtian.org
+
+# GNU defaults
+DEBUG=false
+BAS_AS=as
+BAS_AS_ARCH="-32"
+BAS_LD=ld
+BAS_LD_ARCH="-m elf_i386"
+BAS_AS_DBG="-gstabs"
+BAS_DBG=""
+BAS_LIB=""
+BAS_DYN_LINK_LIB_OPT="-l"
+BAS_DYN_LINK_OPT="-dynamic-linker"
+BAS_DYN_LINKER="/lib/ld-linux.so.2"
+BAS_DYN_LINK_DIR_OPT="-L"
+BAS_DYN_LINK_DIR="."
+BAS_DYN_LINK_LIBX="$BAS_DYN_LINK_DIR_OPT $BAS_DYN_LINK_DIR $BAS_DYN_LINK_OPT $BAS_DYN_LINKER"
+BAS_DYN_LINK_LIBC="$BAS_DYN_LINK_OPT $BAS_DYN_LINKER"
+BAS_DYN_LINK=""
+BAS_DYN_LINK_LIB=""
+BAS_SRC=""
+BAS_SRC_BASENAME=""
+
+# Usage
+usage()
+{
+	echo "Usage: bas32 [-d] [-l] [-h] asm.s"
+	echo "	-d: debuging for gdb"
+	echo "	-l: linking with lib"
+	echo "	-h: showing help"
+	exit 1
+}
+
+# Process arguments
+if [[ $# < 1 ]]
+then
+	usage
+	exit 0
+fi
+# A POSIX variable
+OPTIND=1	# Reset in case getopts has been used previously in the shell.
+while getopts "h?dl:" opt
+do
+	case "$opt" in
+	h|\?)
+		usage
+		exit 0
+		;;
+	d)
+		BAS_DBG=$BAS_AS_DBG
+		;;
+	l)
+		BAS_LIB=$OPTARG
+		# Set the linking directory
+		if [ "$BAS_LIB" = "c" ]
+		then
+			BAS_DYN_LINK=$BAS_DYN_LINK_LIBC
+		else
+			BAS_DYN_LINK=$BAS_DYN_LINK_LIBX
+		fi
+		# Set the linking lib
+		BAS_DYN_LINK_LIB="$BAS_DYN_LINK_LIB_OPT$BAS_LIB"
+		;;
+	esac
+done
+
+shift $((OPTIND-1))
+[ "$1" = "--" ] && shift
+BAS_SRC=$@
+
+# Get the basename of the source file
+BAS_SRC_BASENAME=`basename $BAS_SRC | cut -d. -f1`
+
+# Debug
+if [ "$DEBUG" = true ]
+then
+	echo "lib=$BAS_LIB"
+	echo "source=$BAS_SRC"
+	echo "source_base=$BAS_SRC_BASENAME"
+	echo "debug=$BAS_DBG"
+	echo "linker=$BAS_DYN_LINK"
+	echo "link_lib=$BAS_DYN_LINK_LIB"
+	exit 0
+fi
+
+# Assembly
+$BAS_AS $BAS_AS_ARCH $BAS_DBG $BAS_SRC_BASENAME.s -o $BAS_SRC_BASENAME.o
+# Link
+$BAS_LD $BAS_LD_ARCH $BAS_DYN_LINK $BAS_SRC_BASENAME.o -o $BAS_SRC_BASENAME $BAS_DYN_LINK_LIB
+
