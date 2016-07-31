@@ -5,6 +5,12 @@
 # Jan 9, 2016
 # root@davejingtian.org
 # http://davejingtian.org
+#
+# Support for multiple files
+# To debug this script:
+# set DEBUG=true and use "bash -x"
+# Jul 30, 2016
+# daveti
 
 # GNU defaults
 DEBUG=false
@@ -26,13 +32,16 @@ BAS_DYN_LINK=""
 BAS_DYN_LINK_LIB=""
 BAS_SRC=""
 BAS_SRC_BASENAME=""
+BAS_OUTPUT=""
+BAS_OBJECT_LIST=""
 
 # Usage
 usage()
 {
-	echo "Usage: bas32 [-d] [-l] [-h] asm.s"
+	echo "Usage: bas32 [-d] [-l] [-h] [-o] asm asm.s asm1.s"
 	echo "	-d: debuging for gdb"
 	echo "	-l: linking with lib"
+	echo "	-o: naming output"
 	echo "	-h: showing help"
 	exit 1
 }
@@ -45,7 +54,7 @@ then
 fi
 # A POSIX variable
 OPTIND=1	# Reset in case getopts has been used previously in the shell.
-while getopts "h?dl:" opt
+while getopts "h?dl:o:" opt
 do
 	case "$opt" in
 	h|\?)
@@ -67,15 +76,23 @@ do
 		# Set the linking lib
 		BAS_DYN_LINK_LIB="$BAS_DYN_LINK_LIB_OPT$BAS_LIB"
 		;;
+	o)
+		BAS_OUTPUT=$OPTARG
+		;;
 	esac
 done
 
 shift $((OPTIND-1))
 [ "$1" = "--" ] && shift
 BAS_SRC=$@
+src_array=($BAS_SRC)
 
-# Get the basename of the source file
-BAS_SRC_BASENAME=`basename $BAS_SRC | cut -d. -f1`
+if [ -z "$BAS_OUTPUT" ]
+then
+	# Get the basename of the source file
+	BAS_SRC_BASENAME=`basename $BAS_SRC | cut -d. -f1`
+	BAS_OUTPUT=$BAS_SRC_BASENAME
+fi
 
 # Debug
 if [ "$DEBUG" = true ]
@@ -86,11 +103,23 @@ then
 	echo "debug=$BAS_DBG"
 	echo "linker=$BAS_DYN_LINK"
 	echo "link_lib=$BAS_DYN_LINK_LIB"
-	exit 0
+	echo "output=$BAS_OUTPUT"
+	#exit 0
 fi
 
 # Assembly
-$BAS_AS $BAS_AS_ARCH $BAS_DBG $BAS_SRC_BASENAME.s -o $BAS_SRC_BASENAME.o
+for src in "${src_array[@]}"
+do
+	BASENAME=`basename "${src}" | cut -d. -f1`
+	$BAS_AS $BAS_AS_ARCH $BAS_DBG -o $BASENAME.o "${src}"
+	BAS_OBJECT_LIST+="$BASENAME.o"
+	BAS_OBJECT_LIST+=" "
+done
+if [ "$DEBUG" = true ]
+then
+	echo "object_list=$BAS_OBJECT_LIST"
+	exit 0
+fi
 # Link
-$BAS_LD $BAS_LD_ARCH $BAS_DYN_LINK $BAS_SRC_BASENAME.o -o $BAS_SRC_BASENAME $BAS_DYN_LINK_LIB
+$BAS_LD $BAS_LD_ARCH $BAS_DYN_LINK $BAS_DYN_LINK_LIB -o $BAS_OUTPUT $BAS_OBJECT_LIST
 
