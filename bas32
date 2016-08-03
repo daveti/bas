@@ -11,6 +11,10 @@
 # set DEBUG=true and use "bash -x"
 # Jul 30, 2016
 # daveti
+#
+# Support for inline assembly/C source files
+# Aug 2, 2016
+# daveti
 
 # GNU defaults
 DEBUG=false
@@ -21,6 +25,12 @@ BAS_LD_ARCH="-m elf_i386"
 BAS_AS_DBG="-gstabs"
 BAS_DBG=""
 BAS_LIB=""
+BAS_CC=gcc
+BAS_CC_ARCH="-m32"
+BAS_CC_DBG="-ggdb"
+BAS_CC_OPT="-fno-asynchronous-unwind-tables"	# disable the CFI debugging info by default
+BAS_CC_ASM_GEN_OPT="-S $BAS_CC_OPT"
+BAS_CC_ASM_GEN=false
 BAS_DYN_LINK_LIB_OPT="-l"
 BAS_DYN_LINK_OPT="-dynamic-linker"
 BAS_DYN_LINKER="/lib/ld-linux.so.2"
@@ -34,14 +44,16 @@ BAS_SRC=""
 BAS_SRC_BASENAME=""
 BAS_OUTPUT=""
 BAS_OBJECT_LIST=""
+BAS_USE_CC=false
 
 # Usage
 usage()
 {
-	echo "Usage: bas32 [-d] [-l] [-h] [-o] asm asm.s asm1.s"
+	echo "Usage: bas32 [-d] [-l x] [-h] [-o asm] [-s] asm.s asm1.s"
 	echo "	-d: debuging for gdb"
-	echo "	-l: linking with lib"
+	echo "	-l: linking with libx"
 	echo "	-o: naming output"
+	echo "	-s: generating assembly for C source file"
 	echo "	-h: showing help"
 	exit 1
 }
@@ -54,7 +66,7 @@ then
 fi
 # A POSIX variable
 OPTIND=1	# Reset in case getopts has been used previously in the shell.
-while getopts "h?dl:o:" opt
+while getopts "h?dl:o:s" opt
 do
 	case "$opt" in
 	h|\?)
@@ -78,6 +90,9 @@ do
 		;;
 	o)
 		BAS_OUTPUT=$OPTARG
+		;;
+	s)
+		BAS_CC_ASM_GEN=true;
 		;;
 	esac
 done
@@ -107,9 +122,39 @@ then
 	#exit 0
 fi
 
+# Check for C source file
+for src in "${src_array[@]}"
+do
+	# Get the suffix of the src
+	SRC_SUFFIX=`basename "${src}" | rev | cut -d. -f1 | rev`
+	if [ "$SRC_SUFFIX" = "c" ]
+	then
+		BAS_USE_CC=true
+		if [ "$BAS_CC_ASM_GEN" = true ]
+		then
+			# Generate the assembly file before calling gas
+			$BAS_CC $BAS_CC_ARCH $BAS_CC_ASM_GEN_OPT "${src}"
+		fi
+	fi
+done
+
+# Use gcc
+# Since the linker is looking for _start rather than main
+if [ "$BAS_CC_ASM_GEN" = true ] || [ "$BAS_USE_CC" = true ]
+then
+	# Compile all the source file using gcc
+	if [ ! -z "$BAS_DBG" ]
+	then
+		BAS_DBG=$BAS_CC_DBG
+	fi
+	$BAS_CC $BAS_CC_ARCH $BAS_DBG $BAS_CC_OPT -o $BAS_OUTPUT $BAS_SRC
+	exit 0
+fi
+
 # Assembly
 for src in "${src_array[@]}"
 do
+	# Get the basename of the src
 	BASENAME=`basename "${src}" | cut -d. -f1`
 	$BAS_AS $BAS_AS_ARCH $BAS_DBG -o $BASENAME.o "${src}"
 	BAS_OBJECT_LIST+="$BASENAME.o"
